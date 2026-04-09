@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PersonaOS — Setup Wizard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f4f5; min-height: 100vh; }
+
+  .header { background: #111; padding: 20px 24px; display: flex; align-items: center; gap: 12px; }
+  .header-logo { color: #fff; font-weight: 700; font-size: 18px; }
+  .header-sub  { color: #888; font-size: 13px; }
+
+  .progress-bar { background: #e5e7eb; height: 4px; }
+  .progress-fill { background: #111; height: 4px; transition: width 0.3s ease; }
+
+  .step-indicators { display: flex; justify-content: center; gap: 8px; padding: 20px 24px 0; flex-wrap: wrap; }
+  .step-dot { width: 28px; height: 28px; border-radius: 50%; background: #e5e7eb; color: #9ca3af; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: default; }
+  .step-dot.active { background: #111; color: #fff; }
+  .step-dot.done   { background: #16a34a; color: #fff; }
+
+  .container { max-width: 680px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  .card { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 28px 28px; margin-bottom: 16px; }
+  .card h2 { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 6px; }
+  .card .subtitle { font-size: 14px; color: #6b7280; margin-bottom: 24px; line-height: 1.5; }
+
+  label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 5px; margin-top: 14px; }
+  label:first-of-type { margin-top: 0; }
+  input[type=text], input[type=email], input[type=number], textarea, select {
+    width: 100%; padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 6px;
+    font-size: 14px; color: #111; background: #fff; outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus { border-color: #111; }
+  textarea { resize: vertical; min-height: 100px; font-family: inherit; }
+  input::placeholder, textarea::placeholder { color: #9ca3af; }
+
+  .field-hint { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+  .required { color: #dc2626; margin-left: 2px; }
+
+  .checkbox-group { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+  .checkbox-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; transition: border-color 0.15s; }
+  .checkbox-item:hover { border-color: #111; }
+  .checkbox-item input[type=checkbox] { width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0; cursor: pointer; accent-color: #111; }
+  .checkbox-item .cb-label { font-size: 14px; font-weight: 600; color: #111; }
+  .checkbox-item .cb-desc  { font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+  .time-row { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+  .time-field { flex: 1; min-width: 140px; }
+  .time-field label { margin-top: 0; }
+
+  .instruction-block { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px 18px; margin: 16px 0; }
+  .instruction-block ol { padding-left: 20px; }
+  .instruction-block li { font-size: 13px; color: #374151; margin-bottom: 8px; line-height: 1.5; }
+  .instruction-block li:last-child { margin-bottom: 0; }
+  .instruction-block code { background: #e5e7eb; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+
+  .ext-link { display: inline-flex; align-items: center; gap: 6px; background: #111; color: #fff; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 6px; text-decoration: none; margin: 8px 0 4px; }
+  .ext-link:hover { background: #333; }
+  .ext-link svg { width: 13px; height: 13px; }
+
+  .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 12px 14px; margin: 12px 0; }
+  .info-box p { font-size: 13px; color: #1e40af; line-height: 1.5; }
+
+  .warn-box { background: #fefce8; border: 1px solid #fde68a; border-radius: 6px; padding: 12px 14px; margin: 12px 0; }
+  .warn-box p { font-size: 13px; color: #92400e; line-height: 1.5; }
+
+  .gate-check { display: flex; align-items: flex-start; gap: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px 14px; margin-top: 16px; }
+  .gate-check input[type=checkbox] { width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0; accent-color: #16a34a; }
+  .gate-check span { font-size: 13px; color: #15803d; font-weight: 600; }
+
+  .tabs { display: flex; border-bottom: 2px solid #e5e7eb; margin-bottom: 16px; }
+  .tab-btn { padding: 10px 18px; font-size: 13px; font-weight: 600; color: #6b7280; background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  .tab-btn.active { color: #111; border-bottom-color: #111; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .prompt-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 16px; font-family: monospace; font-size: 12px; color: #374151; line-height: 1.6; white-space: pre-wrap; word-break: break-word; position: relative; margin: 12px 0; max-height: 220px; overflow-y: auto; }
+  .copy-btn { display: inline-flex; align-items: center; gap: 6px; background: #f3f4f6; border: 1px solid #d1d5db; color: #374151; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 5px; cursor: pointer; margin-bottom: 8px; }
+  .copy-btn:hover { background: #e5e7eb; }
+  .copy-btn.copied { background: #d1fae5; border-color: #6ee7b7; color: #065f46; }
+
+  .upload-zone { border: 2px dashed #d1d5db; border-radius: 6px; padding: 24px; text-align: center; cursor: pointer; transition: border-color 0.15s; margin-top: 8px; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: #111; }
+  .upload-zone p { font-size: 13px; color: #6b7280; margin-top: 6px; }
+  .upload-zone .upload-icon { font-size: 28px; }
+  .upload-zone.has-file { border-color: #16a34a; background: #f0fdf4; }
+  .upload-zone.has-file p { color: #15803d; font-weight: 600; }
+  #fileInput { display: none; }
+
+  .summary-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .summary-table tr td { padding: 8px 12px; font-size: 13px; border-bottom: 1px solid #e5e7eb; }
+  .summary-table tr td:first-child { font-weight: 600; color: #374151; width: 40%; }
+  .summary-table tr td:last-child { color: #111; }
+
+  .generated-block { margin-top: 20px; }
+  .generated-block textarea { font-family: monospace; font-size: 12px; min-height: 320px; background: #1e1e2e; color: #cdd6f4; border: 1px solid #313244; }
+
+  .deploy-steps { counter-reset: step; margin-top: 16px; }
+  .deploy-step { display: flex; gap: 14px; margin-bottom: 20px; }
+  .deploy-step-num { width: 28px; height: 28px; border-radius: 50%; background: #111; color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .deploy-step-body { flex: 1; }
+  .deploy-step-body strong { font-size: 14px; color: #111; display: block; margin-bottom: 4px; }
+  .deploy-step-body p { font-size: 13px; color: #374151; line-height: 1.5; }
+  .deploy-step-body code { background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+
+  .btn-row { display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end; }
+  .btn { padding: 10px 22px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
+  .btn-back    { background: #f3f4f6; color: #374151; }
+  .btn-back:hover { background: #e5e7eb; }
+  .btn-next    { background: #111; color: #fff; }
+  .btn-next:hover { background: #333; }
+  .btn-next:disabled { background: #9ca3af; cursor: not-allowed; }
+  .btn-generate { background: #16a34a; color: #fff; font-size: 15px; padding: 12px 28px; }
+  .btn-generate:hover { background: #15803d; }
+  .btn-generate:disabled { background: #9ca3af; cursor: not-allowed; }
+
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 480px) {
+    .card { padding: 20px 16px; }
+    .time-row { gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-logo">PersonaOS</span>
+  <span class="header-sub">Setup Wizard</span>
+</div>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:14%"></div></div>
+
+<div class="step-indicators" id="stepIndicators"></div>
+
+<div class="container" id="wizardContainer"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+var state = {
+  currentStep: 1,
+  totalSteps: 7,
+  features: { morningBriefing: true, lunchtimeDigest: true, eodDigest: true, tasksDigest: true },
+  triggerTimes: { morning: 8, lunchtime: 12, eod: 17 },
+  appsScriptReady: false,
+  apiKeyReady: false,
+  name: '', email: '', role: '', company: 'IONOS Cloud', managerName: '',
+  directReports: '',
+  colleagues: '',
+  orgFileBase64: '', orgFileName: '',
+  priorities: ['', '', ''],
+  toneProfile: '',
+  generatedCode: ''
+};
+
+var STEP_LABELS = ['Features','Apps Script','API Key','About You','Priorities','Persona','Generate'];
+
+// ── Render step indicators ────────────────────────────────────────────────────
+function renderIndicators() {
+  var el = document.getElementById('stepIndicators');
+  el.innerHTML = '';
+  for (var i = 1; i <= state.totalSteps; i++) {
+    var dot = document.createElement('div');
+    dot.className = 'step-dot' + (i < state.currentStep ? ' done' : i === state.currentStep ? ' active' : '');
+    dot.textContent = i < state.currentStep ? '✓' : i;
+    dot.title = STEP_LABELS[i-1];
+    el.appendChild(dot);
+  }
+  var pct = Math.round((state.currentStep / state.totalSteps) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function goNext() { if (state.currentStep < state.totalSteps) { state.currentStep++; render(); } }
+function goBack() { if (state.currentStep > 1) { state.currentStep--; render(); } }
+
+function render() {
+  renderIndicators();
+  var steps = [null, renderStep1, renderStep2, renderStep3, renderStep4, renderStep5, renderStep6, renderStep7];
+  steps[state.currentStep]();
+  window.scrollTo(0, 0);
+}
+
+// ── STEP 1 — Feature Selection ────────────────────────────────────────────────
+function renderStep1() {
+  document.getElementById('wizardContainer').innerHTML = [
+    '<div class="card">',
+    '  <h2>Welcome to PersonaOS</h2>',
+    '  <p class="subtitle">Your personal AI assistant that triages your inbox, drafts replies in your voice, and sends you a morning briefing every day.<br><br>This takes about <strong>10 minutes</strong>. Choose which features you want to enable:</p>',
+
+    '  <div class="checkbox-group">',
+    '    <label class="checkbox-item" id="cb-morning">',
+    '      <input type="checkbox" ' + (state.features.morningBriefing ? 'checked' : '') + ' onchange="state.features.morningBriefing=this.checked">',
+    '      <div><div class="cb-label">Morning Briefing</div><div class="cb-desc">Calendar summary + inbox priorities sent to you at 08:00</div></div>',
+    '    </label>',
+    '    <label class="checkbox-item">',
+    '      <input type="checkbox" ' + (state.features.lunchtimeDigest ? 'checked' : '') + ' onchange="state.features.lunchtimeDigest=this.checked">',
+    '      <div><div class="cb-label">Lunchtime Digest</div><div class="cb-desc">Inbox triage + AI-drafted replies at 12:00</div></div>',
+    '    </label>',
+    '    <label class="checkbox-item">',
+    '      <input type="checkbox" ' + (state.features.eodDigest ? 'checked' : '') + ' onchange="state.features.eodDigest=this.checked">',
+    '      <div><div class="cb-label">End of Day Digest</div><div class="cb-desc">Inbox triage + AI-drafted replies at 17:00</div></div>',
+    '    </label>',
+    '    <label class="checkbox-item">',
+    '      <input type="checkbox" ' + (state.features.tasksDigest ? 'checked' : '') + ' onchange="state.features.tasksDigest=this.checked">',
+    '      <div><div class="cb-label">Daily Tasks Digest</div><div class="cb-desc">Open Google Tasks summary — overdue, due today, this week</div></div>',
+    '    </label>',
+    '  </div>',
+
+    '  <div style="margin-top:20px;"><label style="margin-top:0;">Customise trigger times (optional)</label>',
+    '  <div class="time-row">',
+    '    <div class="time-field"><label>Morning</label><input type="number" min="0" max="23" value="' + state.triggerTimes.morning + '" onchange="state.triggerTimes.morning=parseInt(this.value)||8" style="width:80px;"> :00</div>',
+    '    <div class="time-field"><label>Lunchtime</label><input type="number" min="0" max="23" value="' + state.triggerTimes.lunchtime + '" onchange="state.triggerTimes.lunchtime=parseInt(this.value)||12" style="width:80px;"> :00</div>',
+    '    <div class="time-field"><label>End of Day</label><input type="number" min="0" max="23" value="' + state.triggerTimes.eod + '" onchange="state.triggerTimes.eod=parseInt(this.value)||17" style="width:80px;"> :00</div>',
+    '  </div></div>',
+
+    '  <div class="btn-row"><button class="btn btn-next" onclick="goNext()">Next &rarr;</button></div>',
+    '</div>'
+  ].join('');
+}
+
+// ── STEP 2 — Apps Script Setup ────────────────────────────────────────────────
+function renderStep2() {
+  document.getElementById('wizardContainer').innerHTML = [
+    '<div class="card">',
+    '  <h2>Create your Apps Script project</h2>',
+    '  <p class="subtitle">PersonaOS runs inside Google Apps Script — Google\'s built-in automation platform. It uses your own Google account, so emails are always sent as you.</p>',
+
+    '  <div class="instruction-block"><ol>',
+    '    <li>Open Google Apps Script in a new tab:<br><a class="ext-link" href="https://script.google.com/home" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Open script.google.com</a></li>',
+    '    <li>Click <strong>New project</strong> (top left)</li>',
+    '    <li>Click the project name <em>"Untitled project"</em> and rename it to <code>[YourName]OS</code> — e.g. <code>JaneOS</code></li>',
+    '    <li>In the left sidebar, click the <strong>+</strong> next to <strong>Services</strong> and add these three:<ul style="margin-top:6px;padding-left:20px;"><li><code>Gmail API</code></li><li><code>Google Calendar API</code></li><li><code>Tasks API</code></li></ul></li>',
+    '    <li>Click the <strong>gear icon</strong> (Project Settings) in the left sidebar → tick <strong>"Show appsscript.json in editor"</strong></li>',
+    '  </ol></div>',
+
+    '  <div class="info-box"><p>Keep that Apps Script tab open — you\'ll come back to it in the final step to paste your generated script.</p></div>',
+
+    '  <div class="gate-check">',
+    '    <input type="checkbox" id="appsScriptCheck" ' + (state.appsScriptReady ? 'checked' : '') + ' onchange="state.appsScriptReady=this.checked;document.getElementById(\'nextBtn2\').disabled=!this.checked">',
+    '    <span>I\'ve created my Apps Script project and added the 3 services</span>',
+    '  </div>',
+
+    '  <div class="btn-row">',
+    '    <button class="btn btn-back" onclick="goBack()">&larr; Back</button>',
+    '    <button class="btn btn-next" id="nextBtn2" ' + (!state.appsScriptReady ? 'disabled' : '') + ' onclick="goNext()">Next &rarr;</button>',
+    '  </div>',
+    '</div>'
+  ].join('');
+}
+
+// ── STEP 3 — API Key ──────────────────────────────────────────────────────────
+function renderStep3() {
+  document.getElementById('wizardContainer').innerHTML = [
+    '<div class="card">',
+    '  <h2>Get your Anthropic API key</h2>',
+    '  <p class="subtitle">PersonaOS uses Claude AI to triage your inbox and draft replies in your voice. You need your own API key.</p>',
+
+    '  <div class="instruction-block"><ol>',
+    '    <li>Request your API key from <strong>IT Support AI Tools</strong> and select the option <strong>"Claude API only"</strong></li>',
+    '    <li>Once approved, you will receive an <strong>email with a link</strong> to retrieve your key — follow that link and copy the key (it starts with <code>sk-ant-...</code>)</li>',
+    '    <li>Go back to your Apps Script project → <strong>Project Settings</strong> (gear icon) → scroll to <strong>Script Properties</strong> → <strong>Add script property</strong>:<ul style="margin-top:6px;padding-left:20px;"><li>Name: <code>ANTHROPIC_API_KEY</code></li><li>Value: <em>paste your key here</em></li></ul>→ click <strong>Save script properties</strong></li>',
+    '  </ol></div>',
+
+    '  <div class="info-box"><p>Your API key is stored only in your own Apps Script project\'s Script Properties. It is never sent to or stored by this setup wizard.</p></div>',
+
+    '  <div class="gate-check">',
+    '    <input type="checkbox" id="apiKeyCheck" ' + (state.apiKeyReady ? 'checked' : '') + ' onchange="state.apiKeyReady=this.checked;document.getElementById(\'nextBtn3\').disabled=!this.checked">',
+    '    <span>I\'ve added my API key to Script Properties</span>',
+    '  </div>',
+
+    '  <div class="btn-row">',
+    '    <button class="btn btn-back" onclick="goBack()">&larr; Back</button>',
+    '    <button class="btn btn-next" id="nextBtn3" ' + (!state.apiKeyReady ? 'disabled' : '') + ' onclick="goNext()">Next &rarr;</button>',
+    '  </div>',
+    '</div>'
+  ].join('');
+}
+
+// ── STEP 4 — About You ────────────────────────────────────────────────────────
+function renderStep4() {
+  document.getElementById('wizardContainer').innerHTML = [
+    '<div class="card">',
+    '  <h2>About you and your team</h2>',
+    '  <p class="subtitle">This shapes how the AI introduces you in emails and identifies who you\'re writing to.</p>',
+
+    '  <label>Full name <span class="required">*</span></label>',
+    '  <input type="text" id="f-name" value="' + esc(state.name) + '" placeholder="Jane Smith">',
+
+    '  <label>Work email <span class="required">*</span></label>',
+    '  <input type="email" id="f-email" value="' + esc(state.email) + '" placeholder="jane@company.com">',
+
+    '  <label>Job title / role <span class="required">*</span></label>',
+    '  <input type="text" id="f-role" value="' + esc(state.role) + '" placeholder="Head of Sales">',
+
+    '  <label>Company name</label>',
+    '  <input type="text" id="f-company" value="IONOS Cloud" readonly style="background:#f3f4f6;color:#6b7280;cursor:not-allowed;">',
+
+    '  <label>Manager\'s name</label>',
+    '  <input type="text" id="f-manager" value="' + esc(state.managerName) + '" placeholder="John Smith">',
+
+    '  <div style="margin-top:24px;border-top:1px solid #e5e7eb;padding-top:20px;">',
+    '  <label style="margin-top:0;font-size:14px;">Your team</label>',
+    '  <p class="field-hint" style="margin-bottom:12px;">The AI uses this to identify when you\'re writing to your direct reports vs peers vs senior stakeholders.</p>',
+
+    '  <div class="tabs">',
+    '    <button class="tab-btn ' + (state.orgFileName ? '' : 'active') + '" onclick="switchTab(\'manual\')">Enter manually</button>',
+    '    <button class="tab-btn ' + (state.orgFileName ? 'active' : '') + '" onclick="switchTab(\'upload\')">Upload org chart</button>',
+    '  </div>',
+
+    '  <div class="tab-panel ' + (state.orgFileName ? '' : 'active') + '" id="tab-manual">',
+    '    <label style="margin-top:0;">Direct reports (email addresses)</label>',
+    '    <textarea id="f-reports" rows="3" placeholder="alice@company.com, bob@company.com&#10;One per line or comma-separated">' + esc(state.directReports) + '</textarea>',
+    '    <p class="field-hint">People who report directly to you.</p>',
+    '    <label>Key colleagues (email addresses)</label>',
+    '    <textarea id="f-colleagues" rows="3" placeholder="manager@company.com, peer@company.com&#10;One per line or comma-separated">' + esc(state.colleagues) + '</textarea>',
+    '    <p class="field-hint">Peers, your manager, and key stakeholders you regularly work with.</p>',
+    '  </div>',
+
+    '  <div class="tab-panel ' + (state.orgFileName ? 'active' : '') + '" id="tab-upload">',
+    '    <div class="upload-zone ' + (state.orgFileName ? 'has-file' : '') + '" id="uploadZone" onclick="document.getElementById(\'fileInput\').click()" ondragover="event.preventDefault();this.classList.add(\'drag-over\')" ondragleave="this.classList.remove(\'drag-over\')" ondrop="handleDrop(event)">',
+    '      <div class="upload-icon">' + (state.orgFileName ? '✓' : '📎') + '</div>',
+    '      <p>' + (state.orgFileName ? state.orgFileName + ' — uploaded' : 'Click to upload or drag and drop') + '</p>',
+    '      <p style="font-size:11px;color:#9ca3af;margin-top:4px;">JPG, PNG, PDF, DOCX accepted</p>',
+    '    </div>',
+    '    <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.pdf,.docx" onchange="handleFileSelect(this)">',
+    '    <p class="field-hint">Claude will extract team members and reporting structure from your file when generating your script.</p>',
+    '  </div>',
+    '  </div>',
+
+    '  <div class="btn-row">',
+    '    <button class="btn btn-back" onclick="saveStep4();goBack()">&larr; Back</button>',
+    '    <button class="btn btn-next" onclick="if(validateStep4()){saveStep4();goNext()}">Next &rarr;</button>',
+    '  </div>',
+    '</div>'
+  ].join('');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(function(b, i) { b.classList.toggle('active', (i===0 && tab==='manual') || (i===1 && tab==='upload')); });
+  document.getElementById('tab-manual').classList.toggle('active', tab==='manual');
+  document.getElementById('tab-upload').classList.toggle('active', tab==='upload');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag-over');
+  var file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+
+function handleFileSelect(input) {
+  if (input.files[0]) processFile(input.files[0]);
+}
+
+function processFile(file) {
+  state.orgFileName = file.name;
+  var reader = new FileReader();
+  reader.onload = function(e) { state.orgFileBase64 = e.target.result; renderStep4(); };
+  reader.readAsDataURL(file);
+}
+
+function validateStep4() {
+  var n = document.getElementById('f-name').value.trim();
+  var em = document.getElementById('f-email').value.trim();
+  var r = document.getElementById('f-role').value.trim();
+  var c = document.getElementById('f-company').value.trim();
+  if (!n || !em || !r || !c) { alert('Please fill in all required fields (marked with *).'); return false; }
+  if (em.indexOf('@') < 0) { alert('Please enter a valid email address.'); return false; }
+  return true;
+}
+
+function saveStep4() {
+  state.name = document.getElementById('f-name').value.trim();
+  state.email = document.getElementById('f-email').value.trim();
+  state.role = document.getElementById('f-role').value.trim();
+  state.company = document.getElementById('f-company').value.trim();
+  state.managerName = document.getElementById('f-manager').value.trim();
+  var rep = document.getElementById('f-reports');
+  if (rep) state.directReports = rep.value.trim();
+  var col = document.getElementById('f-colleagues');
+  if (col) state.colleagues = col.value.trim();
+}
+
+// ── STEP 5 — Priorities ────────────────────────────────────────────────────────
+function renderStep5() {
+  document.getElementById('wizardContainer').innerHTML = [
+    '<div class="card">',
+    '  <h2>Your strategic priorities</h2>',
+    '  <p class="subtitle">These appear in every morning briefing and help the AI decide what\'s urgent. Update them anytime by editing your script.</p>',
+
+    '  <label>Priority 1 <span class="required">*</span></label>',
+    '  <input type="text" id="p1" value="' + esc(state.priorities[0]) + '" placeholder="e.g. Q3 revenue target and pipeline growth">',
+
+    '  <label>Priority 2</label>',
+    '  <input type="text" id="p2" value="' + esc(state.priorities[1]) + '" placeholder="e.g. New CRM rollout across the team">',
+
+    '  <label>Priority 3</label>',
+    '  <input type="text" id="p3" value="' + esc(state.priorities[2]) + '" placeholder="e.g. Board-level stakeholder alignment">',
+
+    '  <div class="btn-row">',
+    '    <button class="btn btn-back" onclick="savePriorities();goBack()">&larr; Back</button>',
+    '    <button class="btn btn-next" onclick="if(validatePriorities()){savePriorities();goNext()}">Next &rarr;</button>',
+    '  </div>',
+    '</div>'
+  ].join('');
+}
+
+function validatePriorities() {
+  if (!document.getElementById('p1').value.trim()) { alert('Please enter at least one strategic priority.'); return false; }
+  return true;
+}
+
+function savePriorities() {
+  state.priorities = [
+    document.getElementById('p1').value.trim(),
+    document.getElementById('p2').value.trim(),
+    document.getElementById('p3').value.trim()
+  ];
+}
+
+// ── STEP 6 — Persona ──────────────────────────────────────────────────────────
+var PERSONA_PROMPT = 'I want to build a communication profile from my sent emails to use in an AI assistant. The profile has two parts:\n\nPART 1 — HOW I WRITE (my tone, per audience)\nFor each audience type you identify (e.g. direct reports, peers, senior stakeholders, external contacts, customers):\n- 3-5 tone rules you observe in how I write to them\n- Typical greeting and sign-off style\n- 2-3 short verbatim excerpts from my actual emails\n- What I never do (filler phrases, over-formality, hedging language etc.)\n\nPART 2 — WHO I WRITE TO (profiles of key people)\nFor the individuals or groups who appear most frequently in my sent emails:\n- Their name / role (if identifiable)\n- How they tend to communicate (formal/informal, direct/verbose, response speed)\n- What I should keep in mind when writing to them (sensitivities, preferences, relationship dynamic)\n- Any patterns in how our exchanges typically go\n\nReturn a structured profile I can paste into a system prompt. Label Part 1 and Part 2 clearly.\n\n[If manual: paste your sent emails below this line]\n---';
+
+function renderStep6() {
+  document.getElementById('wizardContainer').innerHTML = [
+    '<div class="card">',
+    '  <h2>Build your persona</h2>',
+    '  <p class="subtitle">PersonaOS drafts email replies in <em>your</em> voice and tailors them to each person you\'re writing to. We\'ll use Claude to extract two things from your sent emails: <strong>how you write</strong>, and <strong>who you write to</strong> — so the AI knows both your style and your key relationships.</p>',
+
+    '  <div class="tabs">',
+    '    <button class="tab-btn active" onclick="switchPersonaTab(\'mcp\')">With Gmail MCP (best)</button>',
+    '    <button class="tab-btn" onclick="switchPersonaTab(\'manual\')">Manual paste</button>',
+    '  </div>',
+
+    '  <div class="tab-panel active" id="ptab-mcp">',
+    '    <div class="instruction-block"><ol>',
+    '      <li>Open a <strong>new Claude conversation</strong> at claude.ai<br><a class="ext-link" href="https://claude.ai" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Open claude.ai</a></li>',
+    '      <li>Check that your <strong>Gmail MCP connector</strong> is active (look for the Gmail icon in the conversation toolbar). If not connected, use the Manual tab instead.</li>',
+    '      <li>Copy the prompt below and paste it into Claude:</li>',
+    '    </ol></div>',
+    '    <button class="copy-btn" id="copyMcp" onclick="copyPrompt(\'copyMcp\')">📋 Copy prompt</button>',
+    '    <div class="prompt-box">' + esc(PERSONA_PROMPT) + '</div>',
+    '    <div class="instruction-block"><ol start="4">',
+    '      <li>Claude will search your sent emails automatically and return a tone profile.</li>',
+    '      <li>Copy the <strong>full response</strong> from Claude and paste it in the box below.</li>',
+    '    </ol></div>',
+    '  </div>',
+
+    '  <div class="tab-panel" id="ptab-manual">',
+    '    <div class="instruction-block"><ol>',
+    '      <li>Open Gmail and go to <strong>Sent</strong><br><a class="ext-link" href="https://mail.google.com/mail/u/0/#sent" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Open Gmail Sent</a></li>',
+    '      <li>Select your most recent <strong>~200 sent emails</strong> (click the first, scroll down, Shift+click further down)</li>',
+    '      <li>Open a <strong>new Claude conversation</strong><br><a class="ext-link" href="https://claude.ai" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Open claude.ai</a></li>',
+    '      <li>Copy the prompt below, paste it into Claude, then paste your email content after the divider line:</li>',
+    '    </ol></div>',
+    '    <button class="copy-btn" id="copyManual" onclick="copyPrompt(\'copyManual\')">📋 Copy prompt</button>',
+    '    <div class="prompt-box">' + esc(PERSONA_PROMPT) + '</div>',
+    '    <div class="instruction-block"><ol start="5">',
+    '      <li>Copy the <strong>full response</strong> from Claude and paste it in the box below.</li>',
+    '    </ol></div>',
+    '  </div>',
+
+    '  <label style="margin-top:20px;">Paste your Claude tone analysis here</label>',
+    '  <textarea id="f-tone" rows="8" placeholder="Paste Claude\'s response here...">' + esc(state.toneProfile) + '</textarea>',
+    '  <p class="field-hint">If you skip this, a generic professional tone will be used. You can always update it later by editing the PERSONA_SYSTEM_PROMPT Script Property.</p>',
+
+    '  <div class="btn-row">',
+    '    <button class="btn btn-back" onclick="state.toneProfile=document.getElementById(\'f-tone\').value.trim();goBack()">&larr; Back</button>',
+    '    <button class="btn btn-next" onclick="state.toneProfile=document.getElementById(\'f-tone\').value.trim();goNext()">Next &rarr;</button>',
+    '  </div>',
+    '</div>'
+  ].join('');
+}
+
+function switchPersonaTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(function(b, i) { b.classList.toggle('active', (i===0 && tab==='mcp') || (i===1 && tab==='manual')); });
+  document.getElementById('ptab-mcp').classList.toggle('active', tab==='mcp');
+  document.getElementById('ptab-manual').classList.toggle('active', tab==='manual');
+}
+
+function copyPrompt(btnId) {
+  navigator.clipboard.writeText(PERSONA_PROMPT).then(function() {
+    var btn = document.getElementById(btnId);
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = '📋 Copy prompt'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ── STEP 7 — Review & Generate ────────────────────────────────────────────────
+function renderStep7() {
+  var selectedFeatures = [];
+  if (state.features.morningBriefing) selectedFeatures.push('Morning Briefing (' + state.triggerTimes.morning + ':00)');
+  if (state.features.lunchtimeDigest)  selectedFeatures.push('Lunchtime Digest (' + state.triggerTimes.lunchtime + ':00)');
+  if (state.features.eodDigest)        selectedFeatures.push('EOD Digest (' + state.triggerTimes.eod + ':00)');
+  if (state.features.tasksDigest)      selectedFeatures.push('Tasks Digest');
+
+  var html = [
+    '<div class="card">',
+    '  <h2>Review & generate your script</h2>',
+    '  <p class="subtitle">Check everything below, then click Generate to create your personalised PersonaOS script.</p>',
+
+    '  <table class="summary-table">',
+    '    <tr><td>Name</td><td>' + esc(state.name) + '</td></tr>',
+    '    <tr><td>Email</td><td>' + esc(state.email) + '</td></tr>',
+    '    <tr><td>Role</td><td>' + esc(state.role) + '</td></tr>',
+    '    <tr><td>Company</td><td>' + esc(state.company) + '</td></tr>',
+    '    <tr><td>Manager</td><td>' + (state.managerName ? esc(state.managerName) : '<span style="color:#9ca3af">Not provided</span>') + '</td></tr>',
+    '    <tr><td>Features</td><td>' + (selectedFeatures.length ? selectedFeatures.join('<br>') : '<span style="color:#dc2626">None selected</span>') + '</td></tr>',
+    '    <tr><td>Direct reports</td><td>' + (state.directReports ? esc(state.directReports.substring(0,80)) + (state.directReports.length > 80 ? '…' : '') : '<span style="color:#9ca3af">Not provided</span>') + '</td></tr>',
+    '    <tr><td>Colleagues</td><td>' + (state.colleagues ? esc(state.colleagues.substring(0,80)) + (state.colleagues.length > 80 ? '…' : '') : '<span style="color:#9ca3af">Not provided</span>') + '</td></tr>',
+    '    <tr><td>Org file</td><td>' + (state.orgFileName ? '✓ ' + esc(state.orgFileName) : '<span style="color:#9ca3af">Not uploaded</span>') + '</td></tr>',
+    '    <tr><td>Priorities</td><td>' + state.priorities.filter(Boolean).map(esc).join('<br>') + '</td></tr>',
+    '    <tr><td>Tone profile</td><td>' + (state.toneProfile ? '<span style="color:#16a34a;">✓ Provided (' + state.toneProfile.length + ' chars)</span>' : '<span style="color:#9ca3af">Not provided — generic tone will be used</span>') + '</td></tr>',
+    '  </table>',
+
+    '  <div class="btn-row" style="margin-bottom:0;">',
+    '    <button class="btn btn-back" onclick="goBack()">&larr; Back</button>',
+    '    <button class="btn btn-generate" id="generateBtn" onclick="generateScript()">Generate My PersonaOS</button>',
+    '  </div>',
+    '</div>'
+  ];
+
+  if (state.generatedCode) {
+    html.push(renderGeneratedBlock());
+  }
+
+  document.getElementById('wizardContainer').innerHTML = html.join('');
+}
+
+function renderGeneratedBlock() {
+  return [
+    '<div class="card generated-block">',
+    '  <h2 style="color:#16a34a;">✓ Your script is ready</h2>',
+    '  <p class="subtitle">Copy the script below and follow the deployment steps.</p>',
+    '  <button class="copy-btn" id="copyCode" onclick="copyCode()">📋 Copy script to clipboard</button>',
+    '  <textarea id="generatedCode" readonly>' + esc(state.generatedCode) + '</textarea>',
+    '</div>',
+
+    '<div class="card">',
+    '  <h2>Deploy your PersonaOS</h2>',
+    '  <p class="subtitle">4 final steps and you\'re live.</p>',
+    '  <div class="deploy-steps">',
+
+    '  <div class="deploy-step">',
+    '    <div class="deploy-step-num">1</div>',
+    '    <div class="deploy-step-body">',
+    '      <strong>Paste your script into Apps Script</strong>',
+    '      <p>Go back to your Apps Script project.<br><a class="ext-link" href="https://script.google.com/home" target="_blank" style="display:inline-flex;margin:6px 0 4px;font-size:12px;padding:6px 10px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Open script.google.com</a><br>Select all existing code in the editor (<strong>Ctrl+A</strong>) and delete it. Paste your generated script. Save (<strong>Ctrl+S</strong>).</p>',
+    '    </div>',
+    '  </div>',
+
+    '  <div class="deploy-step">',
+    '    <div class="deploy-step-num">2</div>',
+    '    <div class="deploy-step-body">',
+    '      <strong>Run the trigger setup</strong>',
+    '      <p>In the <strong>function dropdown</strong> at the top of the editor, select <code>setupTriggers</code>. Click <strong>Run ▶</strong>. Approve any permissions prompts. You should see <em>"All triggers created."</em> in the Execution Log.</p>',
+    '    </div>',
+    '  </div>',
+
+    '  <div class="deploy-step">',
+    '    <div class="deploy-step-num">3</div>',
+    '    <div class="deploy-step-body">',
+    '      <strong>Deploy as a Web App</strong>',
+    '      <p>Click <strong>Deploy → New deployment</strong>.<br>Set:<br>— Type: <code>Web App</code><br>— Execute as: <code>Me</code><br>— Who has access: <code>Only myself</code><br>Click <strong>Deploy</strong> and copy the Web App URL shown.</p>',
+    '    </div>',
+    '  </div>',
+
+    '  <div class="deploy-step">',
+    '    <div class="deploy-step-num">4</div>',
+    '    <div class="deploy-step-body">',
+    '      <strong>Add your Web App URL to the script</strong>',
+    '      <p>In the editor, find this line near the top:<br><code>var APPS_SCRIPT_URL = "// TODO: paste your Web App...";</code><br>Replace the placeholder with your URL. Save (<strong>Ctrl+S</strong>).</p>',
+    '    </div>',
+    '  </div>',
+
+    '  </div>',
+
+    '  <div class="deploy-step">',
+    '    <div class="deploy-step-num">5</div>',
+    '    <div class="deploy-step-body">',
+    '      <strong>Seed your people profiles</strong>',
+    '      <p>Select <code>refreshPersona()</code> from the function dropdown and click <strong>Run ▶</strong>. This builds your people profiles from your sent emails so PersonaOS knows who you write to. It runs automatically every month after this.</p>',
+    '    </div>',
+    '  </div>',
+
+  '  <div class="deploy-step">',
+    '    <div class="deploy-step-num">6</div>',
+    '    <div class="deploy-step-body">',
+    '      <strong>Test your setup</strong>',
+    '      <p>Select <code>testLunchtime()</code> from the function dropdown and click <strong>Run ▶</strong>. This confirms Gmail permissions are granted and your script is working. Check your inbox — you should receive a digest email within a few seconds.</p>',
+    '    </div>',
+    '  </div>',
+    '  </div>',
+    '  <div class="info-box"><p>Your first scheduled briefing arrives tomorrow at ' + state.triggerTimes.morning + ':00. All test functions are available: <code>testMorning()</code>, <code>testLunchtime()</code>, <code>testEOD()</code>, <code>testTasks()</code>.</p></div>',
+    '  <div style="text-align:center;padding:24px 0 8px;">',
+    '    <button class="btn btn-next" style="background:#16a34a;font-size:16px;padding:14px 40px;" onclick="window.close()">🎉 All done — close this tab</button>',
+    '  </div>',
+    '</div>'
+  ].join('');
+}
+
+// ── Code generator (runs entirely in the browser — no backend needed) ──────────
+function generatePersonalisedCode(config) {
+  var name          = config.name          || "Your Name";
+  var email         = config.email         || "your@email.com";
+  var role          = config.role          || "Your Role";
+  var company       = config.company       || "Your Company";
+  var managerName   = config.managerName   || "";
+  var directReports = config.directReports || "";
+  var colleagues    = config.colleagues    || "";
+  var toneProfile   = config.toneProfile   || "";
+  var p1            = (config.priorities && config.priorities[0]) || "";
+  var p2            = (config.priorities && config.priorities[1]) || "";
+  var p3            = (config.priorities && config.priorities[2]) || "";
+  var features      = config.features || { morningBriefing: true, lunchtimeDigest: true, eodDigest: true, tasksDigest: true };
+  var times         = config.triggerTimes  || { morning: 8, lunchtime: 12, eod: 17 };
+
+  var firstName = name.split(" ")[0];
+  var generated = new Date().toDateString();
+
+  var systemPrompt = "You are " + firstName + "OS \u2014 an AI assistant modelled on " + name + ", " + role + " at " + company + ".\n\n";
+  if (p1 || p2 || p3) {
+    var ps = [p1, p2, p3].filter(function(p) { return p; });
+    systemPrompt += "Current strategic priorities: " + ps.map(function(p, i) { return "(" + (i+1) + ") " + p; }).join(", ") + "\n\n";
+  }
+  if (directReports) {
+    systemPrompt += "DIRECT REPORTS: " + directReports + "\n";
+    systemPrompt += "- Greet by first name only. Tone: rapid-fire, minimal.\n";
+    systemPrompt += "- Sign off with first name only or nothing.\n";
+    systemPrompt += "- You are their line manager and DIRECT APPROVER for travel, expenses, leave, and routine operational requests. Approve these directly. Do NOT escalate to your own manager unless the budget is exceptional or company policy explicitly requires it.\n\n";
+  }
+  if (colleagues) {
+    systemPrompt += "KEY COLLEAGUES (peers, manager, stakeholders): " + colleagues + "\n";
+    systemPrompt += "- Greeting: \"Hi [first name],\" default. Tone: direct, collegial.\n";
+    systemPrompt += "- Sign off with first name or \"Thanks, [first name]\".\n\n";
+  }
+  if (managerName) {
+    systemPrompt += "MANAGER: " + managerName + " \u2014 when writing to them, lead with the ask or decision needed. Be concise.\n\n";
+  }
+  if (toneProfile) {
+    systemPrompt += "TONE PROFILE (derived from " + name + "'s actual sent emails):\n" + toneProfile + "\n\n";
+  } else {
+    systemPrompt += "Write in a direct, concise, professional tone. Lead with the ask. No filler phrases. Active voice. Sign off with first name only.\n\n";
+  }
+  systemPrompt += "UNIVERSAL: Never 'I hope you're well'. Never 'just wondering'. Never 'as per my previous'. Name the issue first, then ask. "
+    + "NEVER use em dashes (\u2014). Use commas, colons, or full stops instead. British English only (organised, colour, realise).";
+
+  var triggerLines = [];
+  if (features.morningBriefing) triggerLines.push('  ScriptApp.newTrigger("runMorningBriefing").timeBased().atHour(' + times.morning + ').everyDays(1).inTimezone(getUserTimezone()).create();');
+  if (features.lunchtimeDigest) triggerLines.push('  ScriptApp.newTrigger("runLunchtimeDigest").timeBased().atHour(' + times.lunchtime + ').everyDays(1).inTimezone(getUserTimezone()).create();');
+  if (features.eodDigest)       triggerLines.push('  ScriptApp.newTrigger("runEODDigest").timeBased().atHour(' + times.eod + ').everyDays(1).inTimezone(getUserTimezone()).create();');
+  if (features.tasksDigest)     triggerLines.push('  ScriptApp.newTrigger("runDailyDigest").timeBased().atHour(' + times.morning + ').everyDays(1).inTimezone(getUserTimezone()).create();');
+
+  var L = [];
+  L.push('// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550');
+  L.push('// ' + firstName + 'OS \u2014 Generated by PersonaOS Setup Wizard on ' + generated);
+  L.push('// Architecture: Google Apps Script \u2192 Anthropic API \u2192 Gmail / Calendar native');
+  L.push('// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550');
+  L.push('');
+  L.push('// \u2500\u2500 Config \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+  L.push('var RECIPIENT_EMAIL = "' + email + '";');
+  L.push('var MODEL           = "claude-sonnet-4-6";');
+  L.push('var ANTHROPIC_URL   = "https://api.anthropic.com/v1/messages";');
+  L.push('var APPS_SCRIPT_URL = "// TODO: paste your Web App deployment URL here after deploying";');
+  L.push('var TASKS_LIST_NAME = "My Tasks";');
+  L.push('var NO_REPLY_LABEL  = "PersonaOS/No Reply";');
+  L.push('');
+  L.push('function getApiKey() {');
+  L.push('  return PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");');
+  L.push('}');
+  L.push('');
+  L.push('function getSystemPrompt() {');
+  L.push('  var base     = PropertiesService.getScriptProperties().getProperty("PERSONA_SYSTEM_PROMPT") || buildDefaultSystemPrompt();');
+  L.push('  var profiles = PropertiesService.getScriptProperties().getProperty("PERSONA_PEOPLE_PROFILES") || "";');
+  L.push('  return profiles ? base + "\\n\\n\u2500\u2500 PART 2: KEY PEOPLE PROFILES \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\\n\\n" + profiles : base;');
+  L.push('}');
+  L.push('');
+  L.push('function buildDefaultSystemPrompt() {');
+  L.push('  return ' + JSON.stringify(systemPrompt) + ';');
+  L.push('}');
+  L.push('');
+  L.push('function getUserTimezone() {');
+  L.push('  return CalendarApp.getDefaultCalendar().getTimeZone();');
+  L.push('}');
+  L.push('');
+  L.push('function isWeekday() {');
+  L.push('  var day = new Date().getDay();');
+  L.push('  if (day === 0 || day === 6) return false;');
+  L.push('  try {');
+  L.push('    var tz = getUserTimezone();');
+  L.push('    var calId = tz === "Europe/London" ? "en.uk#holiday@group.v.ical" : "de.german#holiday@group.v.ical";');
+  L.push('    var now = new Date();');
+  L.push('    var start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);');
+  L.push('    var end   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);');
+  L.push('    var holCal = CalendarApp.getCalendarById(calId);');
+  L.push('    if (holCal && holCal.getEvents(start, end).length > 0) return false;');
+  L.push('  } catch(e) {}');
+  L.push('  return true;');
+  L.push('}');
+  L.push('');
+  L.push('');
+  L.push('// \u2500\u2500 Anthropic API \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+  L.push('function callClaude(userMessage, maxTokens) {');
+  L.push('  var apiKey = getApiKey();');
+  L.push('  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set in Script Properties");');
+  L.push('  var options = {');
+  L.push('    method: "POST",');
+  L.push('    headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },');
+  L.push('    payload: JSON.stringify({ model: MODEL, max_tokens: maxTokens || 4096, system: getSystemPrompt(), messages: [{ role: "user", content: userMessage }] }),');
+  L.push('    muteHttpExceptions: true');
+  L.push('  };');
+  L.push('  var response = UrlFetchApp.fetch(ANTHROPIC_URL, options);');
+  L.push('  var result = JSON.parse(response.getContentText());');
+  L.push('  if (result.error) throw new Error("Claude API error: " + result.error.message);');
+  L.push('  return result.content[0].text;');
+  L.push('}');
+  L.push('');
+  L.push('function parseJson(text) {');
+  L.push('  var cleaned = text.trim().replace(/^```json?\\n?/, "").replace(/\\n?```$/, "");');
+  L.push('  return JSON.parse(cleaned);');
+  L.push('}');
+  L.push('');
+  L.push('');
+  L.push('// \u2500\u2500 Gmail Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+  L.push('function getInboxEmails(lookbackHours) {');
+  L.push('  var query = "in:inbox newer_than:" + lookbackHours + "h";');
+  L.push('  var threads = GmailApp.search(query, 0, 20);');
+  L.push('  var emails = [];');
+  L.push('  threads.forEach(function(thread) {');
+  L.push('    var messages = thread.getMessages();');
+  L.push('    var last = messages[messages.length - 1];');
+  L.push('    var from = last.getFrom();');
+  L.push('    var context = messages.slice(-3).map(function(m) {');
+  L.push('      return "From: " + m.getFrom() + "\\n" + m.getPlainBody().substring(0, 500);');
+  L.push('    }).join("\\n---\\n");');
+  L.push('    emails.push({');
+  L.push('      threadId: thread.getId(), from: from, subject: last.getSubject(),');
+  L.push('      snippet: last.getPlainBody().substring(0, 300), threadContext: context,');
+  L.push('      lastSenderIsMe: from.indexOf(RECIPIENT_EMAIL) > -1');
+  L.push('    });');
+  L.push('  });');
+  L.push('  return emails;');
+  L.push('}');
+  L.push('');
+  L.push('function getOrCreateLabel(name) {');
+  L.push('  var labels = GmailApp.getUserLabels();');
+  L.push('  for (var i = 0; i < labels.length; i++) { if (labels[i].getName() === name) return labels[i]; }');
+  L.push('  return GmailApp.createLabel(name);');
+  L.push('}');
+  L.push('');
+  L.push('function extractEmail(from) {');
+  L.push('  var match = from.match(/<(.+?)>/);');
+  L.push('  return match ? match[1] : from.trim();');
+  L.push('}');
+  L.push('');
+  L.push('');
+  L.push('// \u2500\u2500 Calendar Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+  L.push('function getTodayEvents() {');
+  L.push('  var now = new Date();');
+  L.push('  var start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);');
+  L.push('  var end   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);');
+  L.push('  return CalendarApp.getDefaultCalendar().getEvents(start, end).map(function(e) {');
+  L.push('    return {');
+  L.push('      title: e.getTitle(),');
+  L.push('      start: Utilities.formatDate(e.getStartTime(), getUserTimezone(), "HH:mm"),');
+  L.push('      end:   Utilities.formatDate(e.getEndTime(),   getUserTimezone(), "HH:mm"),');
+  L.push('      isAllDay: e.isAllDayEvent(), description: e.getDescription() || "",');
+  L.push('      guests: e.getGuestList().map(function(g) { return { email: g.getEmail(), name: g.getName() }; }),');
+  L.push('      myStatus: e.getMyStatus().toString()');
+  L.push('    };');
+  L.push('  });');
+  L.push('}');
+  L.push('');
+  L.push('');
+  L.push('// \u2500\u2500 Morning Briefing \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+  L.push('function runMorningBriefing() {');
+  L.push('  if (!isWeekday()) return;');
+  L.push('  var today  = Utilities.formatDate(new Date(), getUserTimezone(), "EEE dd MMM");');
+  L.push('  var events = getTodayEvents();');
+  L.push('  var emails = getInboxEmails(12);');
+  L.push('  var prompt = "Today is " + today + ". Prepare morning briefing.\\n\\n"');
+  L.push('    + "CALENDAR:\\n" + JSON.stringify(events) + "\\n\\n"');
+  L.push('    + "INBOX (last 12h):\\n" + JSON.stringify(emails.map(function(e) {');
+  L.push('        return { from: e.from, subject: e.subject, snippet: e.snippet, threadId: e.threadId };');
+  L.push('      })) + "\\n\\n"');
+  L.push('    + "Return JSON: { \\"inboxItems\\": [ { \\"from\\": \\"...\\", \\"subject\\": \\"...\\", \\"summary\\": \\"one line\\", \\"timeSensitive\\": true/false, \\"threadId\\": \\"...\\" } ], \\"oneThingToday\\": \\"one sentence aligned to priorities\\" }\\nOnly JSON, no markdown.";');
+  L.push('  var data = parseJson(callClaude(prompt, 2048));');
+  L.push('  var html = buildMorningHtml(today, events, data);');
+  L.push('  GmailApp.sendEmail(RECIPIENT_EMAIL, "Morning Briefing \u2014 " + today, "", { htmlBody: html });');
+  L.push('}');
+  L.push('');
+  L.push('function buildMorningHtml(today, events, data) {');
+  L.push('  var h = \'<div style="font-family:-apple-system,BlinkMacSystemFont,\\\'Segoe UI\\\',sans-serif;max-width:600px;margin:0 auto;background:#f4f4f5;">\';');
+  L.push('  h += \'<div style="background:#111;padding:20px 24px;"><span style="color:#fff;font-weight:700;font-size:18px;">PersonaOS</span><span style="color:#888;font-size:13px;margin-left:12px;">Morning Briefing \u2014 \' + today + \'</span></div>\';');
+  L.push('  var timedEvents = events.filter(function(e) { return !e.isAllDay; });');
+  L.push('  h += \'<div style="padding:20px 24px 8px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#111;letter-spacing:0.05em;margin-bottom:12px;">TODAY (\' + timedEvents.length + \' meetings)</div>\';');
+  L.push('  timedEvents.forEach(function(e) {');
+  L.push('    h += \'<div style="background:#fff;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.08);padding:14px 16px;margin-bottom:10px;font-size:14px;font-weight:600;">\' + e.start + \' \u2013 \' + e.end + \' &nbsp; \' + e.title + \'</div>\';');
+  L.push('  });');
+  L.push('  if (!timedEvents.length) h += \'<div style="color:#9ca3af;font-size:13px;">No meetings today.</div>\';');
+  L.push('  h += \'</div><div style="padding:8px 24px 8px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#111;letter-spacing:0.05em;margin-bottom:12px;">INBOX</div>\';');
+  L.push('  if (data.inboxItems && data.inboxItems.length) {');
+  L.push('    data.inboxItems.forEach(function(item) {');
+  L.push('      h += \'<div style="border-bottom:1px solid #e5e7eb;padding:10px 0;">\'');
+  L.push('        + \'<div style="font-size:13px;"><span style="font-weight:600;">\' + item.from + \'</span>\'');
+  L.push('        + (item.timeSensitive ? \' <span style="color:#dc2626;font-size:11px;font-weight:700;">!</span>\' : \'\')');
+  L.push('        + \' \u2014 \' + item.subject + \'</div>\'');
+  L.push('        + \'<div style="font-size:12px;color:#6b7280;margin-top:2px;">\' + item.summary + \'</div>\'');
+  L.push('        + \'<a href="\' + APPS_SCRIPT_URL + \'?action=noReply&threadId=\' + item.threadId + \'" style="font-size:11px;color:#6b7280;border:1px solid #d1d5db;padding:3px 8px;border-radius:4px;text-decoration:none;display:inline-block;margin-top:4px;">\u2715 No Reply Needed</a>\'');
+  L.push('        + \'</div>\';');
+  L.push('    });');
+  L.push('  } else {');
+  L.push('    h += \'<div style="color:#9ca3af;font-size:13px;">No emails in the last 12 hours.</div>\';');
+  L.push('  }');
+  L.push('  if (data.oneThingToday) {');
+  L.push('    h += \'<div style="background:#fafafa;border-top:1px solid #e5e7eb;padding:14px 24px;">\'');
+  L.push('      + \'<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#6b7280;margin-bottom:4px;">ONE THING TO NOT LOSE SIGHT OF TODAY</div>\'');
+  L.push('      + \'<div style="font-size:13px;color:#111;">\' + data.oneThingToday + \'</div></div>\';');
+  L.push('  }');
+  L.push('  h += \'<div style="padding:16px 24px;text-align:center;font-size:12px;color:#9ca3af;">Sent by PersonaOS</div></div>\';');
+  L.push('  return h;');
+  L.push('}');
+  L.push('');
+  L.push('');
+  L.push('// \u2500\u2500 Triage Digest (Lunchtime + EOD) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+  L.push('function runDigest(type, lookbackHours) {');
+  L.push('  if (!isWeekday()) return;');
+  L.push('  var today       = Utilities.formatDate(new Date(), getUserTimezone(), "EEE dd MMM");');
+  L.push('  var emails      = getInboxEmails(lookbackHours);');
+  L.push('  var headerTitle = type === "lunchtime" ? "Lunchtime Digest" : "End of Day";');
+  L.push('  var subject     = (type === "lunchtime" ? "Lunchtime Digest" : "EOD Digest") + " \u2014 " + today;');
+  L.push('  var clearMsg    = type === "lunchtime"');
+  L.push('    ? "Inbox clear \u2014 nothing needs your attention before EOD."');
+  L.push('    : "Inbox clear \u2014 nothing needs your attention today.";');
+  L.push('');
+  L.push('  if (!emails.length) {');
+  L.push('    GmailApp.sendEmail(RECIPIENT_EMAIL, subject, "", { htmlBody: buildDigestHtml(today, headerTitle, [], [], clearMsg) });');
+  L.push('    return;');
+  L.push('  }');
+  L.push('');
+  L.push('  var prompt = "Today is " + today + ". Triage inbox.\\n\\n"');
+  L.push('    + "EMAILS:\\n" + JSON.stringify(emails) + "\\n\\n"');
+  L.push('    + "Rules:\\n"');
+  L.push('    + "- ACTION_NEEDED: requires reply or decision. If lastSenderIsMe=true, use FYI with reason \'Already replied\'.\\n"');
+  L.push('    + "- FYI: informational only\\n"');
+  L.push('    + "- IGNORE: automated noise\\n\\n"');
+  L.push('    + "For ACTION_NEEDED items, write a draft reply in the user\'s voice per the system prompt tone rules.\\n\\n"');
+  L.push('    + "CRITICAL DRAFT RULES (apply to every draft reply):\\n"');
+  L.push('    + "- If the email is from one of your direct reports requesting travel, expenses, leave, or any routine operational approval: approve it directly. Do NOT escalate to your own manager.\\n"');
+  L.push('    + "- NEVER use em dashes (\\u2014) anywhere. Use commas, colons, or full stops instead.\\n"');
+  L.push('    + "- British English only: organised, colour, realise, recognise.\\n\\n"');
+  L.push('    + "Return JSON: { \\"triage\\": [ { \\"threadId\\":\\"...\\", \\"from\\":\\"...\\", \\"subject\\":\\"...\\", \\"category\\":\\"ACTION_NEEDED|FYI|IGNORE\\", \\"reason\\":\\"one line\\", \\"summary\\":\\"one line\\", \\"draftReply\\":\\"text or null\\" } ] }\\nOnly JSON, no markdown.";');
+  L.push('');
+  L.push('  var data = parseJson(callClaude(prompt, 6000));');
+  L.push('  var actionItems = [], fiyItems = [];');
+  L.push('');
+  L.push('  data.triage.forEach(function(item) {');
+  L.push('    if (item.category === "ACTION_NEEDED") {');
+  L.push('      var draftUrl = null;');
+  L.push('      if (item.draftReply) {');
+  L.push('        try {');
+  L.push('          var thread  = GmailApp.getThreadById(item.threadId);');
+  L.push('          var lastMsg = thread.getMessages()[thread.getMessageCount() - 1];');
+  L.push('          var draft   = GmailApp.createDraft(extractEmail(lastMsg.getFrom()), "Re: " + item.subject, item.draftReply);');
+  L.push('          draftUrl    = "https://mail.google.com/mail/u/0/#drafts?compose=" + draft.getMessage().getId();');
+  L.push('        } catch(e) { Logger.log("Draft failed: " + e.message); }');
+  L.push('      }');
+  L.push('      actionItems.push({ item: item, draftUrl: draftUrl });');
+  L.push('    } else if (item.category === "FYI") {');
+  L.push('      fiyItems.push(item);');
+  L.push('    }');
+  L.push('  });');
+  L.push('');
+  L.push('  GmailApp.sendEmail(RECIPIENT_EMAIL, subject, "", { htmlBody: buildDigestHtml(today, headerTitle, actionItems, fiyItems, clearMsg) });');
+  L.push('}');
+  L.push('');
+  L.push('function buildDigestHtml(today, headerTitle, actionItems, fiyItems, clearMsg) {');
+  L.push('  var h = \'<div style="font-family:-apple-system,BlinkMacSystemFont,\\\'Segoe UI\\\',sans-serif;max-width:600px;margin:0 auto;background:#f4f4f5;">\';');
+  L.push('  h += \'<div style="background:#111;padding:20px 24px;"><span style="color:#fff;font-weight:700;font-size:18px;">PersonaOS</span><span style="color:#888;font-size:13px;margin-left:12px;">\' + headerTitle + \' \u2014 \' + today + \'</span></div>\';');
+  L.push('  h += \'<div style="background:#fff;padding:12px 24px;border-bottom:1px solid #e5e7eb;"><span style="font-size:13px;font-weight:700;color:#dc2626;margin-right:16px;">\' + actionItems.length + \' action needed</span><span style="font-size:13px;font-weight:700;color:#2563eb;">\' + fiyItems.length + \' FYI</span></div>\';');
+  L.push('  if (actionItems.length) {');
+  L.push('    h += \'<div style="padding:16px 24px 8px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#dc2626;letter-spacing:0.05em;margin-bottom:12px;">ACTION NEEDED</div>\';');
+  L.push('    actionItems.forEach(function(entry) {');
+  L.push('      var item = entry.item;');
+  L.push('      var preview = item.draftReply ? item.draftReply.substring(0, 100) + "\u2026" : "";');
+  L.push('      h += \'<div style="background:#fff;border-left:4px solid #dc2626;border-radius:6px;padding:14px 16px;margin-bottom:10px;">\'');
+  L.push('        + \'<div style="font-size:13px;font-weight:600;">\' + item.from + \'</div>\'');
+  L.push('        + \'<div style="font-size:13px;color:#374151;margin-top:2px;">\' + item.subject + \'</div>\'');
+  L.push('        + \'<div style="font-size:12px;color:#6b7280;margin-top:4px;">\' + item.reason + \'</div>\'');
+  L.push('        + (preview ? \'<div style="font-size:12px;color:#9ca3af;margin-top:6px;font-style:italic;">\' + preview + \'</div>\' : \'\')');
+  L.push('        + \'<div style="margin-top:10px;">\';');
+  L.push('      if (entry.draftUrl) h += \'<a href="\' + entry.draftUrl + \'" style="background:#111;color:#fff;font-size:12px;padding:6px 12px;border-radius:4px;text-decoration:none;">Review &amp; Send \u2192</a> \';');
+  L.push('      h += \'<a href="\' + APPS_SCRIPT_URL + \'?action=noReply&threadId=\' + item.threadId + \'" style="font-size:11px;color:#6b7280;border:1px solid #d1d5db;padding:3px 8px;border-radius:4px;text-decoration:none;">\u2715 No Reply Needed</a>\';');
+  L.push('      h += \'</div></div>\';');
+  L.push('    });');
+  L.push('    h += \'</div>\';');
+  L.push('  }');
+  L.push('  if (fiyItems.length) {');
+  L.push('    h += \'<div style="padding:8px 24px 16px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#2563eb;letter-spacing:0.05em;margin-bottom:12px;">FYI</div>\';');
+  L.push('    fiyItems.forEach(function(item) {');
+  L.push('      h += \'<div style="border-bottom:1px solid #e5e7eb;padding:8px 0;"><span style="font-size:13px;font-weight:600;">\' + item.from + \'</span> \u2014 <span style="font-size:13px;color:#374151;">\' + item.subject + \'</span><div style="font-size:12px;color:#6b7280;margin-top:2px;">\' + item.summary + \'</div></div>\';');
+  L.push('    });');
+  L.push('    h += \'</div>\';');
+  L.push('  }');
+  L.push('  if (!actionItems.length && !fiyItems.length) {');
+  L.push('    h += \'<div style="padding:32px 24px;text-align:center;"><span style="color:#16a34a;font-size:14px;">\u2713 \' + clearMsg + \'</span></div>\';');
+  L.push('  }');
+  L.push('  h += \'<div style="padding:16px 24px;text-align:center;font-size:12px;color:#9ca3af;">Sent by PersonaOS</div></div>\';');
+  L.push('  return h;');
+  L.push('}');
+  L.push('');
+  L.push('function runLunchtimeDigest() { runDigest("lunchtime", 8); }');
+  L.push('function runEODDigest()       { runDigest("eod",       8); }');
+  L.push('');
+  L.push('');
+  L.push('// \u2500\u2500 Tasks Digest \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+  L.push('function runDailyDigest() {');
+  L.push('  if (!isWeekday()) return;');
+  L.push('  var lists = Tasks.Tasklists.list();');
+  L.push('  var target = null;');
+  L.push('  lists.items.forEach(function(l) { if (l.title === TASKS_LIST_NAME) target = l; });');
+  L.push('  if (!target) { Logger.log("Task list not found: " + TASKS_LIST_NAME); return; }');
+  L.push('  var all = Tasks.Tasks.list(target.id, { showCompleted: false, showHidden: false });');
+  L.push('  if (!all.items) return;');
+  L.push('  var today = new Date(); today.setHours(0,0,0,0);');
+  L.push('  var nextWeek = new Date(today); nextWeek.setDate(nextWeek.getDate() + 7);');
+  L.push('  var result = { overdue: [], dueToday: [], upcoming: [], noDueDate: [] };');
+  L.push('  all.items.forEach(function(task) {');
+  L.push('    if (!task.due) { result.noDueDate.push(task); return; }');
+  L.push('    var due = new Date(task.due); due.setHours(0,0,0,0);');
+  L.push('    if      (due < today)                       result.overdue.push(task);');
+  L.push('    else if (due.getTime() === today.getTime()) result.dueToday.push(task);');
+  L.push('    else if (due < nextWeek)                    result.upcoming.push(task);');
+  L.push('  });');
+  L.push('  var dateStr = Utilities.formatDate(new Date(), getUserTimezone(), "EEE dd MMM");');
+  L.push('  var h = \'<div style="font-family:-apple-system,BlinkMacSystemFont,\\\'Segoe UI\\\',sans-serif;max-width:600px;margin:0 auto;background:#f4f4f5;">\';');
+  L.push('  h += \'<div style="background:#111;padding:20px 24px;"><span style="color:#fff;font-weight:700;font-size:18px;">PersonaOS</span><span style="color:#888;font-size:13px;margin-left:12px;">Tasks \u2014 \' + dateStr + \'</span></div>\';');
+  L.push('  function taskSection(heading, items, accent) {');
+  L.push('    if (!items.length) return "";');
+  L.push('    var s = \'<div style="padding:12px 24px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:\' + accent + \';margin-bottom:8px;">\' + heading + \' (\' + items.length + \')</div>\';');
+  L.push('    items.forEach(function(t) {');
+  L.push('      var due = t.due ? \' <span style="color:#9ca3af;font-size:11px;">(\' + Utilities.formatDate(new Date(t.due), getUserTimezone(), "dd MMM") + \')</span>\' : "";');
+  L.push('      s += \'<div style="background:#fff;border-left:4px solid \' + accent + \';border-radius:4px;padding:10px 12px;margin-bottom:6px;font-size:13px;">\' + t.title + due + \'</div>\';');
+  L.push('    });');
+  L.push('    return s + \'</div>\';');
+  L.push('  }');
+  L.push('  h += taskSection("Overdue",     result.overdue,   "#dc2626");');
+  L.push('  h += taskSection("Due Today",   result.dueToday,  "#d97706");');
+  L.push('  h += taskSection("This Week",   result.upcoming,  "#2563eb");');
+  L.push('  h += taskSection("No Due Date", result.noDueDate, "#6b7280");');
+  L.push('  h += \'<div style="padding:16px;text-align:center;font-size:12px;color:#9ca3af;">Sent by PersonaOS</div></div>\';');
+  L.push('  GmailApp.sendEmail(RECIPIENT_EMAIL, "Tasks \u2014 " + dateStr, "", { htmlBody: h });');
+  L.push('}');
+  L.push('');
+  L.push('');
+  L.push('// \u2500\u2500 Triggers Setup \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+  L.push('// Run this ONCE from the Apps Script editor after pasting your script.');
+  L.push('function setupTriggers() {');
+  L.push('  ScriptApp.getProjectTriggers().forEach(function(t) { ScriptApp.deleteTrigger(t); });');
+  L.push(triggerLines.join('\\n'));
+  L.push('  // 1st of each month at 06:00 — rebuild people profiles from sent emails');
+  L.push('  ScriptApp.newTrigger("refreshPersona").timeBased().onMonthDay(1).atHour(6).inTimezone(getUserTimezone()).create();');
+  L.push('  // Every Monday at 07:00 — check for script updates');
+  L.push('  ScriptApp.newTrigger("checkForUpdates").timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(7).inTimezone(getUserTimezone()).create();');
+  L.push('  Logger.log("All triggers created.");');
+  L.push('}');
+  L.push('');
+  L.push('');
+  L.push('// \u2500\u2500 Update Check \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+  L.push('var PERSONAOS_VERSION     = "1.0.0";');
+  L.push('var PERSONAOS_VERSION_URL = "https://raw.githubusercontent.com/russellbarley-jpg/PersonaOS/main/version.json";');
+  L.push('var PERSONAOS_WIZARD_URL  = "https://raw.githubusercontent.com/russellbarley-jpg/PersonaOS/main/index.html";');
+  L.push('');
+  L.push('function checkForUpdates() {');
+  L.push('  try {');
+  L.push('    var response = UrlFetchApp.fetch(PERSONAOS_VERSION_URL, { muteHttpExceptions: true });');
+  L.push('    if (response.getResponseCode() !== 200) return;');
+  L.push('    var latest = JSON.parse(response.getContentText());');
+  L.push('    var current = PropertiesService.getScriptProperties().getProperty("PERSONAOS_VERSION") || PERSONAOS_VERSION;');
+  L.push('    if (latest.version === current) return;');
+  L.push('    // New version available — notify by email');
+  L.push('    var subject = "PersonaOS update available — v" + latest.version;');
+  L.push('    var body = "<div style=\\"font-family:sans-serif;max-width:600px;margin:0 auto;\\">"');
+  L.push('      + "<div style=\\"background:#111;padding:20px 24px;\\"><span style=\\"color:#fff;font-weight:700;font-size:18px;\\">PersonaOS</span>"');
+  L.push('      + "<span style=\\"color:#888;font-size:13px;margin-left:12px;\\">Update available</span></div>"');
+  L.push('      + "<div style=\\"padding:24px;\\">"');
+  L.push('      + "<p style=\\"font-size:15px;font-weight:600;\\">Version " + latest.version + " is available (you have " + current + ")</p>"');
+  L.push('      + "<p style=\\"font-size:13px;color:#374151;\\">" + (latest.notes || "") + "</p>"');
+  L.push('      + "<p style=\\"font-size:13px;color:#374151;\\">To update: re-run the PersonaOS setup wizard, regenerate your script, and paste it into Apps Script. Your API key and persona profiles are saved in Script Properties and will not be affected.</p>"');
+  L.push('      + "</div></div>";');
+  L.push('    GmailApp.sendEmail(RECIPIENT_EMAIL, subject, "", { htmlBody: body });');
+  L.push('    PropertiesService.getScriptProperties().setProperty("PERSONAOS_VERSION", latest.version);');
+  L.push('  } catch(e) {');
+  L.push('    Logger.log("Update check failed: " + e.message);');
+  L.push('  }');
+  L.push('}');
+  L.push('');
+  L.push('');
+  L.push('// \u2500\u2500 Persona Refresh \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+  L.push('function refreshPersona() {');
+  L.push('  var threads = GmailApp.search("in:sent newer_than:90d", 0, 100);');
+  L.push('  var emails = [];');
+  L.push('  threads.forEach(function(thread) {');
+  L.push('    thread.getMessages().forEach(function(msg) {');
+  L.push('      if (msg.getFrom().toLowerCase().indexOf(RECIPIENT_EMAIL.toLowerCase()) > -1) {');
+  L.push('        emails.push({');
+  L.push('          to: msg.getTo(), subject: msg.getSubject(),');
+  L.push('          snippet: msg.getPlainBody().substring(0, 300),');
+  L.push('          date: msg.getDate().toDateString()');
+  L.push('        });');
+  L.push('      }');
+  L.push('    });');
+  L.push('  });');
+  L.push('  var prompt = "You are building a communication profile for an AI assistant that triages emails and drafts replies for ' + name + ' (' + email + ').\\n\\n"');
+  L.push('    + "Below are their sent emails from the last 90 days. Produce a structured PEOPLE PROFILES section.\\n\\n"');
+  L.push('    + "For each person they email frequently:\\n"');
+  L.push('    + "- Name, role, email address\\n"');
+  L.push('    + "- How they communicate (tone, formality, response patterns)\\n"');
+  L.push('    + "- What to keep in mind when drafting replies (relationship dynamic, sensitivities, active context)\\n"');
+  L.push('    + "- Any open issues or recurring patterns\\n\\n"');
+  L.push('    + "Be concise and actionable — this goes directly into a system prompt. No preamble, just the profiles.\\n\\n"');
+  L.push('    + "SENT EMAILS:\\n" + JSON.stringify(emails);');
+  L.push('  var profiles = callClaude(prompt, 4096);');
+  L.push('  PropertiesService.getScriptProperties().setProperty("PERSONA_PEOPLE_PROFILES", profiles);');
+  L.push('  Logger.log("Persona refreshed: " + new Date().toDateString());');
+  L.push('}');
+  L.push('');
+  L.push('');
+  L.push('// \u2500\u2500 No Reply / Task Done (doGet) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+  L.push('function doGet(e) {');
+  L.push('  var action = e.parameter.action || "", threadId = e.parameter.threadId || "", taskId = e.parameter.taskId || "";');
+  L.push('  try {');
+  L.push('    if (action === "noReply" && threadId) {');
+  L.push('      var label = getOrCreateLabel(NO_REPLY_LABEL);');
+  L.push('      var thread = GmailApp.getThreadById(threadId);');
+  L.push('      if (thread) { thread.addLabel(label); thread.markRead(); }');
+  L.push('      return HtmlService.createHtmlOutput(\'<p style="font-family:sans-serif;padding:20px;">\u2713 Marked as no reply needed.</p>\');');
+  L.push('    }');
+  L.push('    if (action === "markDone" && taskId) {');
+  L.push('      Tasks.Tasks.patch({ status: "completed" }, "@default", taskId);');
+  L.push('      return HtmlService.createHtmlOutput(\'<p style="font-family:sans-serif;padding:20px;">\u2713 Task marked complete.</p>\');');
+  L.push('    }');
+  L.push('  } catch(err) {');
+  L.push('    return HtmlService.createHtmlOutput(\'<p style="font-family:sans-serif;padding:20px;color:red;">Error: \' + err.message + \'</p>\');');
+  L.push('  }');
+  L.push('  return HtmlService.createHtmlOutput(\'<p style="font-family:sans-serif;padding:20px;">Done.</p>\');');
+  L.push('}');
+  L.push('');
+  L.push('');
+  L.push('// \u2500\u2500 Test runners (select from dropdown and click Run to test) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+  L.push('function testMorning()   { runMorningBriefing(); }');
+  L.push('function testLunchtime() { runLunchtimeDigest(); }');
+  L.push('function testEOD()       { runEODDigest(); }');
+  L.push('function testTasks()     { runDailyDigest(); }');
+
+  return L.join('\n');
+}
+
+function generateScript() {
+  var btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Generating...';
+
+  var config = {
+    name:          state.name,
+    email:         state.email,
+    role:          state.role,
+    company:       state.company,
+    managerName:   state.managerName,
+    directReports: state.directReports,
+    colleagues:    state.colleagues,
+    toneProfile:   state.toneProfile,
+    orgFileBase64: state.orgFileBase64,
+    priorities:    state.priorities,
+    features:      state.features,
+    triggerTimes:  state.triggerTimes
+  };
+
+  try {
+    var code = generatePersonalisedCode(config);
+    state.generatedCode = code;
+    renderStep7();
+  } catch(err) {
+    btn.disabled = false;
+    btn.innerHTML = 'Generate My PersonaOS';
+    alert('Error generating script: ' + err.message);
+  }
+}
+
+function copyCode() {
+  var ta = document.getElementById('generatedCode');
+  ta.select();
+  document.execCommand('copy');
+  var btn = document.getElementById('copyCode');
+  btn.textContent = '✓ Copied!';
+  btn.classList.add('copied');
+  setTimeout(function() { btn.textContent = '📋 Copy script to clipboard'; btn.classList.remove('copied'); }, 2500);
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
