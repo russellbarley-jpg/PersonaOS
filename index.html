@@ -105,6 +105,8 @@
   .deploy-step-body strong { font-size: 14px; color: #111; display: block; margin-bottom: 4px; }
   .deploy-step-body p { font-size: 13px; color: #374151; line-height: 1.5; }
   .deploy-step-body code { background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+  .deploy-check-label { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: #374151; cursor: pointer; user-select: none; }
+  .deploy-check-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #16a34a; flex-shrink: 0; }
 
   .btn-row { display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end; }
   .btn { padding: 10px 22px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
@@ -552,6 +554,7 @@ function renderGeneratedBlock() {
     '    <div class="deploy-step-body">',
     '      <strong>Paste your script into Apps Script</strong>',
     '      <p>Go back to your Apps Script project.<br><a class="ext-link" href="https://script.google.com/home" target="_blank" style="display:inline-flex;margin:6px 0 4px;font-size:12px;padding:6px 10px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Open script.google.com</a><br>Select all existing code in the editor (<strong>Ctrl+A</strong>) and delete it. Paste your generated script. Save (<strong>Ctrl+S</strong>).</p>',
+    '      <label class="deploy-check-label"><input type="checkbox" id="deploy-check-1" onchange="checkDeploySteps()"> Done — script pasted and saved</label>',
     '    </div>',
     '  </div>',
 
@@ -560,6 +563,7 @@ function renderGeneratedBlock() {
     '    <div class="deploy-step-body">',
     '      <strong>Run the trigger setup</strong>',
     '      <p>In the <strong>function dropdown</strong> at the top of the editor, select <code>setupTriggers</code>. Click <strong>Run ▶</strong>. Approve any permissions prompts. You should see <em>"All triggers created."</em> in the Execution Log.</p>',
+    '      <label class="deploy-check-label"><input type="checkbox" id="deploy-check-2" onchange="checkDeploySteps()"> Done — triggers created</label>',
     '    </div>',
     '  </div>',
 
@@ -568,6 +572,7 @@ function renderGeneratedBlock() {
     '    <div class="deploy-step-body">',
     '      <strong>Deploy as a Web App</strong>',
     '      <p>Click <strong>Deploy → New deployment</strong>.<br>Set:<br>— Type: <code>Web App</code><br>— Execute as: <code>Me</code><br>— Who has access: <code>Only myself</code><br>Click <strong>Deploy</strong> and copy the Web App URL shown.</p>',
+    '      <label class="deploy-check-label"><input type="checkbox" id="deploy-check-3" onchange="checkDeploySteps()"> Done — Web App deployed and URL copied</label>',
     '    </div>',
     '  </div>',
 
@@ -576,6 +581,7 @@ function renderGeneratedBlock() {
     '    <div class="deploy-step-body">',
     '      <strong>Add your Web App URL to the script</strong>',
     '      <p>In the editor, find this line near the top:<br><code>var APPS_SCRIPT_URL = "// TODO: paste your Web App...";</code><br>Replace the placeholder with your URL. Save (<strong>Ctrl+S</strong>).</p>',
+    '      <label class="deploy-check-label"><input type="checkbox" id="deploy-check-4" onchange="checkDeploySteps()"> Done — URL added and saved</label>',
     '    </div>',
     '  </div>',
 
@@ -586,6 +592,7 @@ function renderGeneratedBlock() {
     '    <div class="deploy-step-body">',
     '      <strong>Seed your people profiles</strong>',
     '      <p>Select <code>refreshPersona()</code> from the function dropdown and click <strong>Run ▶</strong>. This builds your people profiles from your sent emails so PersonaOS knows who you write to. It runs automatically every month after this.</p>',
+    '      <label class="deploy-check-label"><input type="checkbox" id="deploy-check-5" onchange="checkDeploySteps()"> Done — people profiles seeded</label>',
     '    </div>',
     '  </div>',
 
@@ -594,12 +601,14 @@ function renderGeneratedBlock() {
     '    <div class="deploy-step-body">',
     '      <strong>Test your setup</strong>',
     '      <p>Select <code>testLunchtime()</code> from the function dropdown and click <strong>Run ▶</strong>. This confirms Gmail permissions are granted and your script is working. Check your inbox — you should receive a digest email within a few seconds.</p>',
+    '      <label class="deploy-check-label"><input type="checkbox" id="deploy-check-6" onchange="checkDeploySteps()"> Done — test email received</label>',
     '    </div>',
     '  </div>',
     '  </div>',
     '  <div class="info-box"><p>Your first scheduled briefing arrives tomorrow at ' + state.triggerTimes.morning + ':00. All test functions are available: <code>testMorning()</code>, <code>testLunchtime()</code>, <code>testEOD()</code>, <code>testTasks()</code>.</p></div>',
     '  <div style="text-align:center;padding:24px 0 8px;">',
-    '    <button class="btn btn-next" style="background:#16a34a;font-size:16px;padding:14px 40px;" onclick="window.close()">🎉 All done — close this tab</button>',
+    '    <button class="btn btn-next" id="finishBtn" disabled style="background:#9ca3af;font-size:16px;padding:14px 40px;cursor:not-allowed;" onclick="window.close()">🎉 All done — close this tab</button>',
+    '    <p id="finish-hint" style="margin:8px 0 0;font-size:13px;color:#6b7280;">Tick all 6 steps above to finish</p>',
     '  </div>',
     '</div>'
   ].join('');
@@ -963,7 +972,7 @@ function generatePersonalisedCode(config) {
   L.push('// Run this ONCE from the Apps Script editor after pasting your script.');
   L.push('function setupTriggers() {');
   L.push('  ScriptApp.getProjectTriggers().forEach(function(t) { ScriptApp.deleteTrigger(t); });');
-  L.push(triggerLines.join('\\n'));
+  triggerLines.forEach(function(line) { L.push(line); });
   L.push('  // 1st of each month at 06:00 — rebuild people profiles from sent emails');
   L.push('  ScriptApp.newTrigger("refreshPersona").timeBased().onMonthDay(1).atHour(6).inTimezone(getUserTimezone()).create();');
   L.push('  // Every Monday at 07:00 — check for script updates');
@@ -1101,6 +1110,22 @@ function copyCode() {
   btn.textContent = '✓ Copied!';
   btn.classList.add('copied');
   setTimeout(function() { btn.textContent = '📋 Copy script to clipboard'; btn.classList.remove('copied'); }, 2500);
+}
+
+function checkDeploySteps() {
+  var allDone = true;
+  for (var i = 1; i <= 6; i++) {
+    var cb = document.getElementById('deploy-check-' + i);
+    if (!cb || !cb.checked) { allDone = false; break; }
+  }
+  var btn = document.getElementById('finishBtn');
+  var hint = document.getElementById('finish-hint');
+  if (btn) {
+    btn.disabled = !allDone;
+    btn.style.background = allDone ? '#16a34a' : '#9ca3af';
+    btn.style.cursor = allDone ? 'pointer' : 'not-allowed';
+  }
+  if (hint) hint.style.display = allDone ? 'none' : 'block';
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
