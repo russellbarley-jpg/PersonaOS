@@ -156,6 +156,7 @@ var state = {
   orgFileBase64: '', orgFileName: '',
   priorities: ['', '', ''],
   toneProfile: '',
+  primaryLanguage: 'British English',
   generatedCode: ''
 };
 
@@ -471,9 +472,18 @@ function renderStep6() {
     '  <textarea id="f-tone" rows="8" placeholder="Paste Claude\'s response here...">' + esc(state.toneProfile) + '</textarea>',
     '  <p class="field-hint">If you skip this, a generic professional tone will be used. You can always update it later by editing the PERSONA_SYSTEM_PROMPT Script Property.</p>',
 
+    '  <label style="margin-top:20px;">Primary working language</label>',
+    '  <select id="f-language" style="width:100%;padding:10px;font-size:14px;border:1px solid #d1d5db;border-radius:6px;background:#fff;">',
+    '    <option value="British English"' + (state.primaryLanguage === 'British English' ? ' selected' : '') + '>British English</option>',
+    '    <option value="German"' + (state.primaryLanguage === 'German' ? ' selected' : '') + '>German (Deutsch)</option>',
+    '    <option value="French"' + (state.primaryLanguage === 'French' ? ' selected' : '') + '>French (Français)</option>',
+    '    <option value="Spanish"' + (state.primaryLanguage === 'Spanish' ? ' selected' : '') + '>Spanish (Español)</option>',
+    '  </select>',
+    '  <p class="field-hint">Default for your outbound communications. Replies to incoming emails automatically match the language of the email itself — so a German email gets a German draft reply, an English email gets an English draft reply, etc.</p>',
+
     '  <div class="btn-row">',
-    '    <button class="btn btn-back" onclick="state.toneProfile=document.getElementById(\'f-tone\').value.trim();goBack()">&larr; Back</button>',
-    '    <button class="btn btn-next" onclick="state.toneProfile=document.getElementById(\'f-tone\').value.trim();goNext()">Next &rarr;</button>',
+    '    <button class="btn btn-back" onclick="state.toneProfile=document.getElementById(\'f-tone\').value.trim();state.primaryLanguage=document.getElementById(\'f-language\').value;goBack()">&larr; Back</button>',
+    '    <button class="btn btn-next" onclick="state.toneProfile=document.getElementById(\'f-tone\').value.trim();state.primaryLanguage=document.getElementById(\'f-language\').value;goNext()">Next &rarr;</button>',
     '  </div>',
     '</div>'
   ].join('');
@@ -519,6 +529,7 @@ function renderStep7() {
     '    <tr><td>Org file</td><td>' + (state.orgFileName ? '✓ ' + esc(state.orgFileName) : '<span style="color:#9ca3af">Not uploaded</span>') + '</td></tr>',
     '    <tr><td>Priorities</td><td>' + state.priorities.filter(Boolean).map(esc).join('<br>') + '</td></tr>',
     '    <tr><td>Tone profile</td><td>' + (state.toneProfile ? '<span style="color:#16a34a;">✓ Provided (' + state.toneProfile.length + ' chars)</span>' : '<span style="color:#9ca3af">Not provided — generic tone will be used</span>') + '</td></tr>',
+    '    <tr><td>Primary language</td><td>' + esc(state.primaryLanguage || 'British English') + ' <span style="color:#6b7280;font-size:12px;">— replies auto-match incoming language</span></td></tr>',
     '  </table>',
 
     '  <div class="btn-row" style="margin-bottom:0;">',
@@ -624,6 +635,7 @@ function generatePersonalisedCode(config) {
   var directReports = config.directReports || "";
   var colleagues    = config.colleagues    || "";
   var toneProfile   = config.toneProfile   || "";
+  var primaryLanguage = config.primaryLanguage || "British English";
   var p1            = (config.priorities && config.priorities[0]) || "";
   var p2            = (config.priorities && config.priorities[1]) || "";
   var p3            = (config.priorities && config.priorities[2]) || "";
@@ -657,8 +669,9 @@ function generatePersonalisedCode(config) {
   } else {
     systemPrompt += "Write in a direct, concise, professional tone. Lead with the ask. No filler phrases. Active voice. Sign off with first name only.\n\n";
   }
-  systemPrompt += "UNIVERSAL: Never 'I hope you're well'. Never 'just wondering'. Never 'as per my previous'. Name the issue first, then ask. "
-    + "NEVER use em dashes (\u2014). Use commas, colons, or full stops instead. British English only (organised, colour, realise).";
+  systemPrompt += "UNIVERSAL: Never 'I hope you're well'. Never 'just wondering'. Never 'as per my previous'. Name the issue first, then ask.\n\n"
+    + "PRIMARY LANGUAGE: " + primaryLanguage + ". When replying to an incoming email, ALWAYS match the language of THAT email instead (German in \u2192 German reply, French in \u2192 French reply, Spanish in \u2192 Spanish reply, English in \u2192 English reply). Use idiomatic, native conventions for whichever language you write in.\n\n"
+    + "WHEN WRITING IN ENGLISH: Use British English spellings (organised, colour, realise). NEVER use em dashes (\u2014); use commas, colons, or full stops instead.";
 
   var triggerLines = [];
   if (features.morningBriefing) triggerLines.push('  ScriptApp.newTrigger("runMorningBriefing").timeBased().atHour(' + times.morning + ').everyDays(1).inTimezone(getUserTimezone()).create();');
@@ -863,7 +876,8 @@ function generatePersonalisedCode(config) {
   L.push('    + "CRITICAL DRAFT RULES (apply to every draft reply):\\n"');
   L.push('    + "- If the email is from one of your direct reports requesting travel, expenses, leave, or any routine operational approval: approve it directly. Do NOT escalate to your own manager.\\n"');
   L.push('    + "- NEVER use em dashes (\\u2014) anywhere. Use commas, colons, or full stops instead.\\n"');
-  L.push('    + "- British English only: organised, colour, realise, recognise.\\n\\n"');
+  L.push('    + "- LANGUAGE: Detect the language of the incoming email and write the draft reply in THAT SAME language, using native idioms and conventions. Default to ' + primaryLanguage + ' only when the incoming language is ambiguous.\\n"');
+  L.push('    + "- When writing in English specifically: British English spellings (organised, colour, realise, recognise).\\n\\n"');
   L.push('    + "Return JSON: { \\"triage\\": [ { \\"threadId\\":\\"...\\", \\"from\\":\\"...\\", \\"subject\\":\\"...\\", \\"category\\":\\"ACTION_NEEDED|FYI|IGNORE\\", \\"reason\\":\\"one line\\", \\"summary\\":\\"one line\\", \\"draftReply\\":\\"text or null\\" } ] }\\nOnly JSON, no markdown.";');
   L.push('');
   L.push('  var data = parseJson(callClaude(prompt, 6000));');
@@ -987,7 +1001,7 @@ function generatePersonalisedCode(config) {
   L.push('');
   L.push('');
   L.push('// \u2500\u2500 Update Check \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
-  L.push('var PERSONAOS_VERSION     = "1.0.1";');
+  L.push('var PERSONAOS_VERSION     = "1.0.2";');
   L.push('var PERSONAOS_VERSION_URL = "https://raw.githubusercontent.com/russellbarley-jpg/PersonaOS/main/version.json";');
   L.push('var PERSONAOS_WIZARD_URL  = "https://raw.githubusercontent.com/russellbarley-jpg/PersonaOS/main/index.html";');
   L.push('');
@@ -1091,6 +1105,7 @@ function generateScript() {
     directReports: state.directReports,
     colleagues:    state.colleagues,
     toneProfile:   state.toneProfile,
+    primaryLanguage: state.primaryLanguage,
     orgFileBase64: state.orgFileBase64,
     priorities:    state.priorities,
     features:      state.features,
